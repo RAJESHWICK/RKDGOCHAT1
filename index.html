@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telegram Bot Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    .message {
+      max-width: 70%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background-color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .user {
+      align-self: flex-end;
+      background-color: #0088cc;
+      color: white;
+    }
+    .bot {
+      align-self: flex-start;
+      background-color: #e0e0e0;
+    }
+    #input-container {
+      display: flex;
+      padding: 10px;
+      background-color: white;
+      border-top: 1px solid #ccc;
+    }
+    #message-input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #send-button {
+      padding: 10px 15px;
+      margin-left: 10px;
+      font-size: 16px;
+      background-color: #0088cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat"></div>
+  <div id="input-container">
+    <input type="text" id="message-input" placeholder="Type a message...">
+    <button id="send-button">Send</button>
+  </div>
+
+  <script>
+    const botToken = '7619196381:AAGkNJlRGVj_0M2TJhBT1M1bq0wNAyvpvu4';
+    const chatId = '6853875079';
+    const chat = document.getElementById('chat');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+
+    function appendMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.className = message ${sender};
+      msg.innerText = text;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage(text) {
+      appendMessage(text, 'user');
+      messageInput.value = '';
+
+      try {
+        const response = await fetch(https://api.telegram.org/bot${botToken}/sendMessage, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: text
+          })
+        });
+
+        const data = await response.json();
+        if (!data.ok) {
+          appendMessage('Failed to send message.', 'bot');
+        }
+      } catch (error) {
+        appendMessage('Error sending message.', 'bot');
+      }
+    }
+
+    async function getUpdates(offset = 0) {
+      try {
+        const response = await fetch(https://api.telegram.org/bot${botToken}/getUpdates?offset=${offset}&timeout=10);
+        const data = await response.json();
+        if (data.ok) {
+          for (const update of data.result) {
+            if (update.message && update.message.chat.id.toString() === chatId.toString()) {
+              appendMessage(update.message.text, 'bot');
+              offset = update.update_id + 1;
+            }
+          }
+        }
+        setTimeout(() => getUpdates(offset), 1000);
+      } catch (err) {
+        setTimeout(() => getUpdates(offset), 3000);
+      }
+    }
+
+    sendButton.addEventListener('click', () => {
+      const text = messageInput.value.trim();
+      if (text) {
+        sendMessage(text);
+      }
+    });
+
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendButton.click();
+    });
+
+    // Start polling updates
+    getUpdates();
+  </script>
+</body>
+</html>
